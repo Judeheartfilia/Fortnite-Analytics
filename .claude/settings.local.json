@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python update_dashboard.py)",
+      "Bash(PYTHONIOENCODING=utf-8 python update_dashboard.py)",
+      "Bash(cmd.exe /c \"start C:\\\\Users\\\\yovin\\\\www\\\\fortnite-analytics\\\\dashboard\\\\analytics_dashboard.html\")"
+    ]
+  }
+}

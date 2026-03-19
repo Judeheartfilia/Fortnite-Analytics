@@ -1,0 +1,63 @@
+name: Scrape & Deploy
+
+on:
+  schedule:
+    - cron: '0 3 * * *'   # Tous les jours à 3h du matin (UTC)
+  workflow_dispatch:       # Permet de lancer manuellement depuis GitHub
+
+jobs:
+  scrape-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360   # 6h max
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.9
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Install Chrome
+        uses: browser-actions/setup-chrome@v1
+
+      - name: Scrape islands
+        env:
+          PYTHONIOENCODING: utf-8
+          DISPLAY: :99
+        run: |
+          cd scrapers
+          python enrich_with_details.py
+
+      - name: Clean data
+        env:
+          PYTHONIOENCODING: utf-8
+        run: |
+          cd scrapers
+          python clean_data_enriched.py
+
+      - name: Categorize islands
+        env:
+          PYTHONIOENCODING: utf-8
+        run: |
+          cd scrapers
+          python categorize_islands.py
+
+      - name: Generate dashboard
+        env:
+          PYTHONIOENCODING: utf-8
+        run: |
+          cd dashboard
+          python update_dashboard.py
+
+      - name: Deploy to Vercel
+        run: |
+          cd dashboard
+          npx vercel --prod --yes --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
