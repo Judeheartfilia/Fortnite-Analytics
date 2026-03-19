@@ -25,10 +25,21 @@ jobs:
       - name: Install Chrome
         uses: browser-actions/setup-chrome@v1
 
-      - name: Scrape islands
+      - name: Create data directories
+        run: |
+          mkdir -p data/raw
+          mkdir -p data/processed
+
+      - name: Scrape island list (pagination)
         env:
           PYTHONIOENCODING: utf-8
-          DISPLAY: :99
+        run: |
+          cd scrapers
+          python scraper_pagination.py
+
+      - name: Scrape island details
+        env:
+          PYTHONIOENCODING: utf-8
         run: |
           cd scrapers
           python enrich_with_details.py
