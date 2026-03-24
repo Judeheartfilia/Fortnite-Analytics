@@ -617,11 +617,14 @@ def update_dashboard():
         let sortCol = 'unique_players';
         let sortDir = -1;
 
+        let activeTab = 'genre';
         function switchTab(name, btn) {{
             document.querySelectorAll('.chart-card').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.chart-tab').forEach(el => el.classList.remove('active'));
             document.getElementById('tab-' + name).classList.add('active');
             btn.classList.add('active');
+            activeTab = name;
+            renderActiveChart();
         }}
 
         function sortTable(col) {{
@@ -781,51 +784,57 @@ def update_dashboard():
         
         function updateCharts() {{
             Object.values(charts).forEach(c => c.destroy());
-            
-            const genreCounts = {{}};
-            filteredIslands.forEach(i => i.genre.forEach(g => genreCounts[g] = (genreCounts[g] || 0) + 1));
-            
-            charts.genre = new Chart(document.getElementById('genreChart'), {{
-                type: 'bar',
-                data: {{
-                    labels: Object.keys(genreCounts).sort((a,b) => genreCounts[b] - genreCounts[a]).slice(0,10),
-                    datasets: [{{label: 'Îles', data: Object.keys(genreCounts).sort((a,b) => genreCounts[b] - genreCounts[a]).slice(0,10).map(k => genreCounts[k]), backgroundColor: '#3b82f6'}}]
-                }},
-                options: {{responsive: true, aspectRatio: 4}}
-            }});
+            charts = {{}};
+            renderActiveChart();
+        }}
 
-            const mechCounts = {{}};
-            filteredIslands.forEach(i => i.mechanics.forEach(m => mechCounts[m] = (mechCounts[m] || 0) + 1));
-            charts.mechanics = new Chart(document.getElementById('mechanicsChart'), {{
-                type: 'doughnut',
-                data: {{labels: Object.keys(mechCounts), datasets: [{{data: Object.values(mechCounts), backgroundColor: ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b']}}]}},
-                options: {{responsive: true, aspectRatio: 2}}
-            }});
+        function renderActiveChart() {{
+            if (charts[activeTab]) {{
+                charts[activeTab].destroy();
+                delete charts[activeTab];
+            }}
+            const noAnim = {{ animation: false, responsive: true }};
 
-            const genrePlayers = {{}};
-            const genreCount = {{}};
-            filteredIslands.forEach(i => i.genre.forEach(g => {{
-                genrePlayers[g] = (genrePlayers[g] || 0) + i.players;
-                genreCount[g] = (genreCount[g] || 0) + 1;
-            }}));
-            const avgByGenre = {{}};
-            Object.keys(genrePlayers).forEach(g => avgByGenre[g] = genrePlayers[g] / genreCount[g]);
-            charts.performance = new Chart(document.getElementById('performanceChart'), {{
-                type: 'bar',
-                data: {{
-                    labels: Object.keys(avgByGenre).sort((a,b) => avgByGenre[b] - avgByGenre[a]).slice(0,10),
-                    datasets: [{{label: 'Joueurs moyens', data: Object.keys(avgByGenre).sort((a,b) => avgByGenre[b] - avgByGenre[a]).slice(0,10).map(k => avgByGenre[k]), backgroundColor: '#8b5cf6'}}]
-                }},
-                options: {{responsive: true, aspectRatio: 4}}
-            }});
-
-            const sectorCounts = {{}};
-            filteredIslands.forEach(i => sectorCounts[i.sector] = (sectorCounts[i.sector] || 0) + 1);
-            charts.sector = new Chart(document.getElementById('sectorChart'), {{
-                type: 'pie',
-                data: {{labels: Object.keys(sectorCounts), datasets: [{{data: Object.values(sectorCounts), backgroundColor: ['#10b981', '#3b82f6', '#f59e0b']}}]}},
-                options: {{responsive: true, aspectRatio: 2}}
-            }});
+            if (activeTab === 'genre') {{
+                const genreCounts = {{}};
+                filteredIslands.forEach(i => i.genre.forEach(g => genreCounts[g] = (genreCounts[g] || 0) + 1));
+                const labels = Object.keys(genreCounts).sort((a,b) => genreCounts[b] - genreCounts[a]).slice(0,10);
+                charts.genre = new Chart(document.getElementById('genreChart'), {{
+                    type: 'bar',
+                    data: {{ labels, datasets: [{{label: 'Îles', data: labels.map(k => genreCounts[k]), backgroundColor: '#3b82f6'}}] }},
+                    options: {{ ...noAnim, aspectRatio: 4 }}
+                }});
+            }} else if (activeTab === 'mechanics') {{
+                const mechCounts = {{}};
+                filteredIslands.forEach(i => i.mechanics.forEach(m => mechCounts[m] = (mechCounts[m] || 0) + 1));
+                charts.mechanics = new Chart(document.getElementById('mechanicsChart'), {{
+                    type: 'doughnut',
+                    data: {{labels: Object.keys(mechCounts), datasets: [{{data: Object.values(mechCounts), backgroundColor: ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#f97316']}}]}},
+                    options: {{ ...noAnim, aspectRatio: 2 }}
+                }});
+            }} else if (activeTab === 'performance') {{
+                const genrePlayers = {{}}, genreCount = {{}};
+                filteredIslands.forEach(i => i.genre.forEach(g => {{
+                    genrePlayers[g] = (genrePlayers[g] || 0) + i.players;
+                    genreCount[g] = (genreCount[g] || 0) + 1;
+                }}));
+                const avgByGenre = {{}};
+                Object.keys(genrePlayers).forEach(g => avgByGenre[g] = genrePlayers[g] / genreCount[g]);
+                const labels = Object.keys(avgByGenre).sort((a,b) => avgByGenre[b] - avgByGenre[a]).slice(0,10);
+                charts.performance = new Chart(document.getElementById('performanceChart'), {{
+                    type: 'bar',
+                    data: {{ labels, datasets: [{{label: 'Joueurs moyens', data: labels.map(k => avgByGenre[k]), backgroundColor: '#8b5cf6'}}] }},
+                    options: {{ ...noAnim, aspectRatio: 4 }}
+                }});
+            }} else if (activeTab === 'sector') {{
+                const sectorCounts = {{}};
+                filteredIslands.forEach(i => sectorCounts[i.sector] = (sectorCounts[i.sector] || 0) + 1);
+                charts.sector = new Chart(document.getElementById('sectorChart'), {{
+                    type: 'pie',
+                    data: {{labels: Object.keys(sectorCounts), datasets: [{{data: Object.values(sectorCounts), backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ef4444']}}]}},
+                    options: {{ ...noAnim, aspectRatio: 2 }}
+                }});
+            }}
         }}
         
         function updateTable() {{
