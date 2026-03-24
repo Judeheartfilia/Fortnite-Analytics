@@ -47,12 +47,31 @@ def scrape_fortnite_gg_pages(max_pages=10):
             
             # Accepter cookies (première page seulement)
             if page == 1:
-                try:
-                    print("🍪 Acceptation des cookies...")
-                    driver.find_element(By.XPATH, "//button[contains(text(), 'Consent')]").click()
-                    time.sleep(3)
-                except:
-                    print("⚠️  Pas de popup cookies")
+                consent_selectors = [
+                    "//button[contains(translate(text(),'abcdefghijklmnopqrstuvwxyz','ABCDEFGHIJKLMNOPQRSTUVWXYZ'),'CONSENT')]",
+                    "//button[contains(translate(text(),'abcdefghijklmnopqrstuvwxyz','ABCDEFGHIJKLMNOPQRSTUVWXYZ'),'ACCEPT')]",
+                    "//button[contains(translate(text(),'abcdefghijklmnopqrstuvwxyz','ABCDEFGHIJKLMNOPQRSTUVWXYZ'),'AGREE')]",
+                    "//button[contains(translate(text(),'abcdefghijklmnopqrstuvwxyz','ABCDEFGHIJKLMNOPQRSTUVWXYZ'),'OK')]",
+                    "//*[contains(@class,'consent')]//button",
+                    "//*[contains(@class,'cookie')]//button",
+                    "//*[contains(@id,'accept')]",
+                    "//*[contains(@class,'accept')]",
+                ]
+                clicked = False
+                for selector in consent_selectors:
+                    try:
+                        btn = WebDriverWait(driver, 5).until(
+                            EC.element_to_be_clickable((By.XPATH, selector))
+                        )
+                        btn.click()
+                        print("🍪 Cookies acceptés")
+                        time.sleep(2)
+                        clicked = True
+                        break
+                    except:
+                        continue
+                if not clicked:
+                    print("⚠️  Pas de popup cookies détecté")
             
             print("📜 Chargement de la page...")
             time.sleep(3)

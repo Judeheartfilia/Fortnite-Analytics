@@ -2,6 +2,8 @@ from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 import time
 import re
@@ -167,7 +169,32 @@ def enrich_existing_data():
     
     service = Service(ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=chrome_options)
-    
+
+    # Accepter les cookies sur la homepage
+    print("🌐 Chargement de fortnite.gg pour accepter les cookies...")
+    driver.get("https://fortnite.gg/creative")
+    time.sleep(5)
+    consent_selectors = [
+        "//button[contains(translate(text(),'abcdefghijklmnopqrstuvwxyz','ABCDEFGHIJKLMNOPQRSTUVWXYZ'),'CONSENT')]",
+        "//button[contains(translate(text(),'abcdefghijklmnopqrstuvwxyz','ABCDEFGHIJKLMNOPQRSTUVWXYZ'),'ACCEPT')]",
+        "//button[contains(translate(text(),'abcdefghijklmnopqrstuvwxyz','ABCDEFGHIJKLMNOPQRSTUVWXYZ'),'AGREE')]",
+        "//*[contains(@class,'consent')]//button",
+        "//*[contains(@class,'cookie')]//button",
+        "//*[contains(@id,'accept')]",
+        "//*[contains(@class,'accept')]",
+    ]
+    for selector in consent_selectors:
+        try:
+            btn = WebDriverWait(driver, 4).until(
+                EC.element_to_be_clickable((By.XPATH, selector))
+            )
+            btn.click()
+            print("🍪 Cookies acceptés")
+            time.sleep(2)
+            break
+        except:
+            continue
+
     # Reprise automatique si un fichier checkpoint existe
     existing_checkpoints = glob.glob('../data/raw/islands_enriched_v2_*.json')
     if existing_checkpoints:
