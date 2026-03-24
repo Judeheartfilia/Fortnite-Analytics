@@ -1,5 +1,7 @@
 # Données brutes (trop grosses pour GitHub)
 data/raw/
+# Exception : fichier de liste des iles populaires
+!data/raw/islands_pages_*.json
 
 # Données traitées (regénérées automatiquement)
 data/processed/
