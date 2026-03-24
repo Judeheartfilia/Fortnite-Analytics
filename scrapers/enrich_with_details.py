@@ -161,7 +161,7 @@ def enrich_existing_data():
     chrome_options.add_argument('--disable-dev-shm-usage')
     chrome_options.add_argument('--disable-gpu')
 
-    driver = uc.Chrome(options=chrome_options, headless=True)
+    driver = uc.Chrome(options=chrome_options, headless=False)
 
     # Accepter les cookies sur la homepage
     print("🌐 Chargement de fortnite.gg pour accepter les cookies...")

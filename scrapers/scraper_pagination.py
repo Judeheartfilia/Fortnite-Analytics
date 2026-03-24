@@ -23,7 +23,7 @@ def scrape_fortnite_gg_pages(max_pages=10):
     chrome_options.add_argument('--disable-dev-shm-usage')
     chrome_options.add_argument('--disable-gpu')
 
-    driver = uc.Chrome(options=chrome_options, headless=True)
+    driver = uc.Chrome(options=chrome_options, headless=False)
     
     all_islands = []
     
