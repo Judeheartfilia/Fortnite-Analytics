@@ -51,7 +51,11 @@ jobs:
       - name: Deploy to Vercel
         run: |
           cd dashboard
-          npx vercel --prod --yes --token=${{ secrets.VERCEL_TOKEN }}
+          for i in 1 2 3; do
+            npx vercel --prod --yes --token=${{ secrets.VERCEL_TOKEN }} && break
+            echo "Tentative $i echouee, retry dans 15s..."
+            sleep 15
+          done
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
