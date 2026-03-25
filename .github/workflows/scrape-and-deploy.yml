@@ -8,7 +8,7 @@ on:
 jobs:
   scrape-and-deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 360   # 6h max
+    timeout-minutes: 60
 
     steps:
       - name: Checkout repo
@@ -22,45 +22,17 @@ jobs:
       - name: Install Python dependencies
         run: pip install -r requirements.txt
 
-      - name: Install Chrome and Xvfb
-        run: |
-          wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
-          sudo sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list'
-          sudo apt-get update
-          sudo apt-get install -y google-chrome-stable xvfb
-          google-chrome --version
-
       - name: Create data directories
         run: |
           mkdir -p data/raw
           mkdir -p data/processed
 
-      - name: Scrape island list (pagination)
-        env:
-          PYTHONIOENCODING: utf-8
-          DISPLAY: :99
-        run: |
-          Xvfb :99 -screen 0 1920x1080x24 &
-          sleep 2
-          cd scrapers
-          python scraper_pagination.py
-
-      - name: Scrape island details
-        env:
-          PYTHONIOENCODING: utf-8
-          DISPLAY: :99
-        run: |
-          Xvfb :99 -screen 0 1920x1080x24 &
-          sleep 2
-          cd scrapers
-          python enrich_with_details.py
-
-      - name: Clean data
+      - name: Scrape via Epic Games API
         env:
           PYTHONIOENCODING: utf-8
         run: |
           cd scrapers
-          python clean_data_enriched.py
+          python scraper_api.py
 
       - name: Categorize islands
         env:
