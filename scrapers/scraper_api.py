@@ -36,48 +36,56 @@ def api_get(path):
         return None
 
 
-def fetch_all_islands(max_islands=2000):
-    """Recupere les codes d'iles depuis le fichier local (iles populaires)
-    ou via l'API si pas de fichier local."""
+def fetch_all_islands(target_with_data=2000):
+    """Recupere les codes d'iles depuis le fichier local + API pour avoir
+    assez d'iles actives. Vise target_with_data iles avec metriques."""
     import glob
 
-    # Chercher un fichier de codes iles populaires (scrape fortnite.gg)
+    seen_codes = set()
+    islands    = []
+
+    # 1. Charger les iles populaires du fichier local (fortnite.gg)
     files = glob.glob('../data/raw/islands_pages_*.json')
     if files:
         latest = max(files, key=os.path.getctime)
-        print(f"Utilisation du fichier local : {os.path.basename(latest)}")
+        print(f"Fichier local : {os.path.basename(latest)}")
         with open(latest, 'r', encoding='utf-8') as f:
             raw = json.load(f)
-        islands = [{'code': i['code'], 'title': i.get('name',''), 'tags': [], 'creatorCode': ''} for i in raw]
-        print(f"Total : {len(islands)} iles")
-        return islands
+        for i in raw:
+            code = i['code']
+            if code not in seen_codes:
+                seen_codes.add(code)
+                islands.append({'code': code, 'title': i.get('name',''), 'tags': [], 'creatorCode': ''})
+        print(f"  {len(islands)} iles depuis fichier local")
 
-    # Sinon, fallback sur l'API
-    islands = []
-    cursor  = None
-    page    = 0
-    print(f"Recuperation de la liste des iles via API (max {max_islands})...")
-    while len(islands) < max_islands:
-        path = "/islands?limit=100"
-        if cursor:
-            path += f"&after={cursor}"
-        data = api_get(path)
-        if not data:
-            break
-        batch = data.get("data", [])
-        islands.extend(batch)
-        page += 1
+    # 2. Completer avec l'API Epic Games jusqu'a avoir assez de codes
+    # On vise 5x le nombre cible car ~20% des iles ont des metriques
+    need = max(0, target_with_data * 5 - len(islands))
+    if need > 0:
+        print(f"Recuperation de {need} iles supplementaires via API...")
+        cursor = None
+        while len([i for i in islands if i.get('from_api')]) < need:
+            path = "/islands?limit=100"
+            if cursor:
+                path += f"&after={cursor}"
+            data = api_get(path)
+            if not data:
+                break
+            for item in data.get("data", []):
+                code = item["code"]
+                if code not in seen_codes:
+                    seen_codes.add(code)
+                    item['from_api'] = True
+                    islands.append(item)
+            next_link = data.get("links", {}).get("next")
+            if not next_link:
+                break
+            cursor = data["meta"]["page"]["nextCursor"]
+            api_count = len([i for i in islands if i.get('from_api')])
+            if api_count % 1000 == 0 and api_count > 0:
+                print(f"  {api_count} iles API recuperees...")
 
-        next_link = data.get("links", {}).get("next")
-        if not next_link:
-            break
-
-        cursor = data["meta"]["page"]["nextCursor"]
-
-        if page % 10 == 0:
-            print(f"  {len(islands)} iles recuperees...")
-
-    print(f"Total : {len(islands)} iles")
+    print(f"Total a verifier : {len(islands)} iles")
     return islands
 
 
@@ -117,7 +125,7 @@ def scrape_all():
     print(f"{'='*70}\n")
 
     # 1. Recuperer toutes les iles
-    island_list = fetch_all_islands(max_islands=2000)
+    island_list = fetch_all_islands(target_with_data=2000)
     if not island_list:
         print("Aucune ile recuperee !")
         return None
@@ -202,8 +210,9 @@ def scrape_all():
             if done % 100 == 0:
                 print(f"  [{done}/{len(island_list)}] {len(results)} OK, {errors} erreurs")
 
-    # 3. Trier par joueurs
+    # 3. Trier par joueurs et garder les 2000 meilleures
     results.sort(key=lambda x: x["players_24h"], reverse=True)
+    results = results[:2000]
 
     # 4. Sauvegarder
     os.makedirs("../data/processed", exist_ok=True)
